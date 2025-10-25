@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Advanced OCR - Enterprise Batch Processor</title>
+    <title>Advanced Image Processor - OCR & Converter</title>
     <style>
         * {
             margin: 0;
@@ -47,36 +47,89 @@
             font-size: 1.1em;
         }
 
-        .settings-bar {
-            background: #f8f9ff;
-            padding: 20px;
-            border-bottom: 2px solid #e0e0e0;
+        .mode-selector {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 15px;
+            justify-content: center;
+            gap: 10px;
+            padding: 20px;
+            background: #f8f9ff;
+            border-bottom: 2px solid #e0e0e0;
         }
 
-        .setting-group {
+        .mode-btn {
+            padding: 15px 40px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: 600;
+            transition: all 0.3s ease;
             display: flex;
             align-items: center;
             gap: 10px;
         }
 
+        .mode-btn:hover {
+            background: #f0f2ff;
+        }
+
+        .mode-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #667eea;
+        }
+
+        .settings-bar {
+            background: #f8f9ff;
+            padding: 20px;
+            border-bottom: 2px solid #e0e0e0;
+            display: none;
+        }
+
+        .settings-bar.active {
+            display: block;
+        }
+
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .setting-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
         .setting-group label {
             font-weight: 600;
             color: #333;
+            font-size: 0.9em;
         }
 
         .setting-group select,
-        .setting-group input[type="number"] {
-            padding: 8px 12px;
+        .setting-group input[type="number"],
+        .setting-group input[type="range"] {
+            padding: 10px;
             border: 2px solid #667eea;
             border-radius: 8px;
             background: white;
             cursor: pointer;
-            min-width: 80px;
+            font-size: 0.95em;
+        }
+
+        .setting-group input[type="range"] {
+            padding: 0;
+        }
+
+        .range-value {
+            text-align: center;
+            color: #667eea;
+            font-weight: bold;
+            font-size: 0.9em;
         }
 
         .toggle-switch {
@@ -125,7 +178,7 @@
 
         .content {
             padding: 40px;
-            max-height: calc(100vh - 200px);
+            max-height: calc(100vh - 250px);
             overflow-y: auto;
         }
 
@@ -216,9 +269,9 @@
             background: #d32f2f;
         }
 
-        .btn-warning {
-            background: #ff9800;
-            border: 2px solid #ff9800;
+        .btn-success {
+            background: #4caf50;
+            border: 2px solid #4caf50;
         }
 
         .batch-preview-section {
@@ -247,10 +300,10 @@
 
         .images-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
             gap: 15px;
             margin-bottom: 20px;
-            max-height: 400px;
+            max-height: 500px;
             overflow-y: auto;
             padding: 10px;
             background: #f8f9ff;
@@ -283,17 +336,30 @@
             border-color: #f44336;
         }
 
-        .image-card.retrying {
-            border-color: #ff9800;
+        .image-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 5px;
+            margin-bottom: 10px;
         }
 
-        .image-card img {
+        .image-comparison.single {
+            grid-template-columns: 1fr;
+        }
+
+        .image-comparison img {
             width: 100%;
-            height: 120px;
+            height: 100px;
             object-fit: cover;
             border-radius: 8px;
-            margin-bottom: 8px;
             background: #f0f0f0;
+        }
+
+        .image-label {
+            font-size: 0.7em;
+            text-align: center;
+            color: #999;
+            margin-top: 2px;
         }
 
         .image-card-info {
@@ -343,11 +409,6 @@
             background: #f44336;
         }
 
-        .status-icon.retrying {
-            background: #ff9800;
-            animation: pulse 1s infinite;
-        }
-
         @keyframes pulse {
             0%, 100% { opacity: 1; transform: scale(1); }
             50% { opacity: 0.5; transform: scale(0.8); }
@@ -374,6 +435,34 @@
 
         .remove-image-btn:hover {
             background: #d32f2f;
+            transform: scale(1.1);
+        }
+
+        .download-btn {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            background: #4caf50;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            z-index: 10;
+        }
+
+        .image-card.completed .download-btn {
+            display: flex;
+        }
+
+        .download-btn:hover {
+            background: #45a049;
             transform: scale(1.1);
         }
 
@@ -618,23 +707,6 @@
             font-weight: 600;
         }
 
-        .memory-warning {
-            background: #fff3cd;
-            border: 2px solid #ff9800;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 15px 0;
-            display: none;
-        }
-
-        .memory-warning.active {
-            display: block;
-        }
-
-        .memory-warning strong {
-            color: #ff9800;
-        }
-
         @media (max-width: 768px) {
             .header h1 {
                 font-size: 1.8em;
@@ -644,17 +716,21 @@
                 padding: 20px;
             }
 
-            .upload-section {
-                padding: 20px;
+            .mode-selector {
+                flex-direction: column;
             }
 
-            .settings-bar {
-                flex-direction: column;
-                align-items: flex-start;
+            .mode-btn {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .settings-grid {
+                grid-template-columns: 1fr;
             }
 
             .images-grid {
-                grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
             }
 
             .batch-controls {
@@ -671,58 +747,111 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>📸 Enterprise OCR Processor</h1>
-            <p>Resilient batch image to text conversion - Handle 100+ images</p>
+            <h1>🎨 Advanced Image Processor</h1>
+            <p>OCR Text Extraction & Image Format Conversion - Batch Processing Enabled</p>
         </div>
 
-        <div class="settings-bar">
-            <div class="setting-group">
-                <label for="languageSelect">Language:</label>
-                <select id="languageSelect">
-                    <option value="eng">English</option>
-                    <option value="spa">Spanish</option>
-                    <option value="fra">French</option>
-                    <option value="deu">German</option>
-                </select>
-            </div>
+        <!-- Mode Selector -->
+        <div class="mode-selector">
+            <button class="mode-btn active" onclick="switchMode('ocr')" id="ocrModeBtn">
+                📝 OCR Mode
+            </button>
+            <button class="mode-btn" onclick="switchMode('converter')" id="converterModeBtn">
+                🔄 Image Converter
+            </button>
+        </div>
 
-            <div class="setting-group">
-                <label for="batchSize">Batch Size:</label>
-                <input type="number" id="batchSize" min="1" max="5" value="1" 
-                       title="Process N images at a time">
-            </div>
+        <!-- OCR Settings -->
+        <div class="settings-bar active" id="ocrSettings">
+            <div class="settings-grid">
+                <div class="setting-group">
+                    <label for="ocrLanguage">OCR Language</label>
+                    <select id="ocrLanguage">
+                        <option value="eng">English</option>
+                        <option value="spa">Spanish</option>
+                        <option value="fra">French</option>
+                        <option value="deu">German</option>
+                        <option value="rus">Russian</option>
+                        <option value="chi_sim">Chinese (Simplified)</option>
+                        <option value="jpn">Japanese</option>
+                        <option value="ara">Arabic</option>
+                    </select>
+                </div>
 
-            <div class="setting-group">
-                <label for="maxRetries">Max Retries:</label>
-                <input type="number" id="maxRetries" min="0" max="5" value="2">
-            </div>
+                <div class="setting-group">
+                    <label for="ocrBatchSize">Concurrent Processing</label>
+                    <input type="number" id="ocrBatchSize" min="1" max="3" value="1">
+                </div>
 
-            <div class="setting-group">
-                <label>Auto-Resize:</label>
-                <label class="toggle-switch">
-                    <input type="checkbox" id="autoResize" checked>
-                    <span class="slider"></span>
-                </label>
-            </div>
+                <div class="setting-group">
+                    <label for="ocrRetries">Max Retries</label>
+                    <input type="number" id="ocrRetries" min="0" max="5" value="2">
+                </div>
 
-            <div class="setting-group">
-                <label>Enhance:</label>
-                <label class="toggle-switch">
-                    <input type="checkbox" id="enhanceToggle" checked>
-                    <span class="slider"></span>
-                </label>
+                <div class="setting-group">
+                    <label style="display: flex; align-items: center; gap: 10px;">
+                        <span>Image Enhancement</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="ocrEnhance" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Converter Settings -->
+        <div class="settings-bar" id="converterSettings">
+            <div class="settings-grid">
+                <div class="setting-group">
+                    <label for="outputFormat">Output Format</label>
+                    <select id="outputFormat">
+                        <option value="png">PNG</option>
+                        <option value="jpeg">JPEG</option>
+                        <option value="webp">WebP</option>
+                        <option value="bmp">BMP</option>
+                        <option value="gif">GIF</option>
+                    </select>
+                </div>
+
+                <div class="setting-group">
+                    <label for="imageQuality">Quality: <span class="range-value" id="qualityValue">90%</span></label>
+                    <input type="range" id="imageQuality" min="1" max="100" value="90">
+                </div>
+
+                <div class="setting-group">
+                    <label for="maxWidth">Max Width (px)</label>
+                    <input type="number" id="maxWidth" min="0" max="10000" value="0" placeholder="Original">
+                </div>
+
+                <div class="setting-group">
+                    <label for="maxHeight">Max Height (px)</label>
+                    <input type="number" id="maxHeight" min="0" max="10000" value="0" placeholder="Original">
+                </div>
+
+                <div class="setting-group">
+                    <label style="display: flex; align-items: center; gap: 10px;">
+                        <span>Maintain Aspect Ratio</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="maintainRatio" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </label>
+                </div>
+
+                <div class="setting-group">
+                    <label for="convBatchSize">Concurrent Processing</label>
+                    <input type="number" id="convBatchSize" min="1" max="5" value="2">
+                </div>
             </div>
         </div>
 
         <div class="content">
-            <div class="memory-warning" id="memoryWarning">
-                <strong>⚠️ Memory Notice:</strong> Processing large batches. Some previews may be delayed to optimize memory usage.
-            </div>
-
+            <!-- Upload Section -->
             <div class="upload-section" id="uploadSection">
                 <div class="upload-icon">📤</div>
                 <h2>Upload Images</h2>
-                <p>Optimized for large batches - up to 100+ images</p>
+                <p id="uploadDescription">Drag and drop images or click to browse</p>
                 <button class="btn" onclick="document.getElementById('fileInput').click()">
                     Choose Images
                 </button>
@@ -732,6 +861,7 @@
                 </p>
             </div>
 
+            <!-- Batch Preview Section -->
             <div class="batch-preview-section" id="batchPreviewSection">
                 <div class="batch-header">
                     <h3>
@@ -739,11 +869,8 @@
                         <span class="info-badge" id="imageCount">0 images</span>
                     </h3>
                     <div class="batch-controls">
-                        <button class="btn" id="processAllBtn" onclick="processAllImages()">
-                            🚀 Start Processing
-                        </button>
-                        <button class="btn btn-warning" id="pauseBtn" onclick="pauseProcessing()" style="display: none;">
-                            ⏸️ Pause
+                        <button class="btn" id="processAllBtn" onclick="processAll()">
+                            🚀 Process All
                         </button>
                         <button class="btn btn-secondary" onclick="addMoreImages()">
                             ➕ Add More
@@ -756,6 +883,7 @@
                 <div class="images-grid" id="imagesGrid"></div>
             </div>
 
+            <!-- Progress Section -->
             <div class="progress-container" id="progressContainer">
                 <div class="overall-progress">
                     <h4 style="margin-bottom: 10px;">Overall Progress</h4>
@@ -785,14 +913,15 @@
                 </div>
             </div>
 
-            <div class="results-section" id="resultsSection">
+            <!-- OCR Results Section -->
+            <div class="results-section" id="ocrResultsSection">
                 <div class="results-header">
-                    <h3>Results</h3>
+                    <h3>Extracted Text</h3>
                     <div class="results-actions">
                         <button class="btn btn-secondary" onclick="copyAllResults()">
                             📋 Copy All
                         </button>
-                        <button class="btn btn-secondary" onclick="downloadAllResults()">
+                        <button class="btn btn-secondary" onclick="downloadAllOCR()">
                             💾 Download TXT
                         </button>
                         <button class="btn btn-secondary" onclick="downloadAsZip()">
@@ -807,9 +936,9 @@
                 <div class="results-tabs" id="resultsTabs"></div>
                 <div id="resultsContent"></div>
 
-                <div class="stats" id="overallStats">
+                <div class="stats" id="ocrStats">
                     <div class="stat-item">
-                        <div class="stat-value" id="totalImages">0</div>
+                        <div class="stat-value" id="totalProcessed">0</div>
                         <div class="stat-label">Processed</div>
                     </div>
                     <div class="stat-item">
@@ -834,6 +963,51 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Converter Results Section -->
+            <div class="results-section" id="converterResultsSection">
+                <div class="results-header">
+                    <h3>Converted Images</h3>
+                    <div class="results-actions">
+                        <button class="btn btn-secondary" onclick="downloadAllConverted()">
+                            💾 Download All
+                        </button>
+                        <button class="btn btn-secondary" onclick="downloadConvertedZip()">
+                            📦 Download ZIP
+                        </button>
+                        <button class="btn" onclick="resetApp()">
+                            🔄 New Session
+                        </button>
+                    </div>
+                </div>
+
+                <div class="stats" id="converterStats">
+                    <div class="stat-item">
+                        <div class="stat-value" id="convTotalProcessed">0</div>
+                        <div class="stat-label">Converted</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="convSuccessRate">0%</div>
+                        <div class="stat-label">Success Rate</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="originalSize">0 MB</div>
+                        <div class="stat-label">Original Size</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="convertedSize">0 MB</div>
+                        <div class="stat-label">Converted Size</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="compressionRatio">0%</div>
+                        <div class="stat-label">Size Reduction</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="convProcessingTime">0s</div>
+                        <div class="stat-label">Total Time</div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -843,71 +1017,78 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
     <script>
-        // Enhanced State Management with Memory Optimization
+        // Global State
         const state = {
+            mode: 'ocr', // 'ocr' or 'converter'
             files: [],
             results: [],
-            worker: null,
+            ocrWorker: null,
             processing: false,
-            paused: false,
-            currentBatch: 0,
             startTime: null,
-            blobUrls: new Set(), // Track blob URLs for cleanup
-            processedCount: 0,
-            failedCount: 0,
-            retryCount: 0
+            blobUrls: new Set(),
+            totalOriginalSize: 0,
+            totalConvertedSize: 0
         };
-
-        // Queue for processing
-        class ProcessingQueue {
-            constructor() {
-                this.queue = [];
-                this.processing = 0;
-                this.maxConcurrent = 1;
-            }
-
-            add(item) {
-                this.queue.push(item);
-            }
-
-            getNext() {
-                return this.queue.shift();
-            }
-
-            hasNext() {
-                return this.queue.length > 0;
-            }
-
-            clear() {
-                this.queue = [];
-            }
-
-            get pending() {
-                return this.queue.length;
-            }
-
-            get active() {
-                return this.processing;
-            }
-        }
-
-        const queue = new ProcessingQueue();
 
         // Initialize
         document.getElementById('fileInput').addEventListener('change', handleFileSelect);
         initializeDragAndDrop();
         loadSettings();
 
+        // Quality slider
+        document.getElementById('imageQuality').addEventListener('input', (e) => {
+            document.getElementById('qualityValue').textContent = e.target.value + '%';
+        });
+
         // Auto-save settings
         document.querySelectorAll('.settings-bar select, .settings-bar input').forEach(el => {
             el.addEventListener('change', saveSettings);
         });
 
+        // Mode Switching
+        function switchMode(mode) {
+            state.mode = mode;
+            
+            // Update buttons
+            document.getElementById('ocrModeBtn').classList.toggle('active', mode === 'ocr');
+            document.getElementById('converterModeBtn').classList.toggle('active', mode === 'converter');
+            
+            // Update settings
+            document.getElementById('ocrSettings').classList.toggle('active', mode === 'ocr');
+            document.getElementById('converterSettings').classList.toggle('active', mode === 'converter');
+            
+            // Update upload description
+            const desc = mode === 'ocr' 
+                ? 'Upload images to extract text using OCR'
+                : 'Upload images to convert format, resize, or compress';
+            document.getElementById('uploadDescription').textContent = desc;
+            
+            // Clear previous results
+            if (state.files.length > 0) {
+                if (!confirm('Switching modes will clear current queue. Continue?')) {
+                    // Revert
+                    state.mode = mode === 'ocr' ? 'converter' : 'ocr';
+                    switchMode(state.mode);
+                    return;
+                }
+                resetApp();
+            }
+
+            saveSettings();
+        }
+
+        // File Handling
         function initializeDragAndDrop() {
             const uploadSection = document.getElementById('uploadSection');
 
-            uploadSection.addEventListener('dragover', (e) => {
-                e.preventDefault();
+            ['dragover', 'dragleave', 'drop'].forEach(eventName => {
+                uploadSection.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                });
+            });
+
+            uploadSection.addEventListener('dragover', () => {
                 uploadSection.classList.add('dragover');
             });
 
@@ -916,14 +1097,12 @@
             });
 
             uploadSection.addEventListener('drop', (e) => {
-                e.preventDefault();
                 uploadSection.classList.remove('dragover');
                 handleFiles(Array.from(e.dataTransfer.files));
             });
 
             uploadSection.addEventListener('click', (e) => {
-                if (e.target === uploadSection || e.target.closest('.upload-icon') || 
-                    e.target.closest('h2') || e.target.closest('p:not(.upload-section button)')) {
+                if (!e.target.closest('button')) {
                     document.getElementById('fileInput').click();
                 }
             });
@@ -934,25 +1113,20 @@
         }
 
         function handleFiles(files) {
-            const maxFileSize = 20 * 1024 * 1024; // 20MB
+            const maxFileSize = 20 * 1024 * 1024;
             const validFiles = files.filter(file => {
                 if (!file.type.startsWith('image/')) {
                     showNotification(`${file.name} is not a valid image`, 'error');
                     return false;
                 }
                 if (file.size > maxFileSize) {
-                    showNotification(`${file.name} exceeds 20MB limit`, 'warning');
+                    showNotification(`${file.name} exceeds 20MB`, 'warning');
                     return false;
                 }
                 return true;
             });
 
             if (validFiles.length === 0) return;
-
-            // Show memory warning for large batches
-            if (state.files.length + validFiles.length > 20) {
-                document.getElementById('memoryWarning').classList.add('active');
-            }
 
             validFiles.forEach(file => {
                 const fileObj = {
@@ -963,24 +1137,24 @@
                     status: 'pending',
                     progress: 0,
                     result: null,
+                    convertedBlob: null,
+                    convertedSize: 0,
                     confidence: 0,
                     preview: null,
-                    retries: 0,
-                    error: null
+                    convertedPreview: null,
+                    retries: 0
                 };
 
                 state.files.push(fileObj);
+                state.totalOriginalSize += file.size;
             });
 
-            // Load previews in batches to avoid memory issues
             loadPreviewsBatched(validFiles.length);
             updateUI();
-            showNotification(`${validFiles.length} image(s) added to queue`);
+            showNotification(`${validFiles.length} image(s) added`);
         }
 
-        // Load previews in batches to prevent memory overload
         async function loadPreviewsBatched(newCount) {
-            const grid = document.getElementById('imagesGrid');
             const startIndex = state.files.length - newCount;
             const batchSize = 5;
 
@@ -1002,24 +1176,21 @@
                             resolve();
                         };
                         reader.onerror = () => {
-                            console.error(`Failed to load preview for ${fileObj.name}`);
-                            renderImageCard(fileObj); // Render without preview
+                            renderImageCard(fileObj);
                             resolve();
                         };
                         reader.readAsDataURL(fileObj.file);
                     });
                 }));
 
-                // Small delay between batches
                 await new Promise(resolve => setTimeout(resolve, 50));
             }
         }
 
         function renderImageCard(fileObj) {
             const grid = document.getElementById('imagesGrid');
-            
-            // Check if card already exists
             let card = document.getElementById(`card-${fileObj.id}`);
+            
             if (card) {
                 updateImageCardStatus(fileObj);
                 return;
@@ -1029,11 +1200,29 @@
             card.className = 'image-card';
             card.id = `card-${fileObj.id}`;
             
-            const imgSrc = fileObj.preview || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23f0f0f0" width="100" height="100"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%23999"%3ELoading...%3C/text%3E%3C/svg%3E';
+            const imgSrc = fileObj.preview || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23f0f0f0" width="100" height="100"/%3E%3C/svg%3E';
+            
+            const imageHTML = state.mode === 'converter' && fileObj.convertedPreview
+                ? `<div class="image-comparison">
+                    <div>
+                        <img src="${imgSrc}" alt="Original" loading="lazy">
+                        <div class="image-label">Original</div>
+                    </div>
+                    <div>
+                        <img src="${fileObj.convertedPreview}" alt="Converted" loading="lazy">
+                        <div class="image-label">Converted</div>
+                    </div>
+                   </div>`
+                : `<div class="image-comparison single">
+                    <div>
+                        <img src="${imgSrc}" alt="${fileObj.name}" loading="lazy">
+                    </div>
+                   </div>`;
             
             card.innerHTML = `
                 <button class="remove-image-btn" onclick="removeImage(${fileObj.id})" ${state.processing ? 'disabled' : ''}>×</button>
-                <img src="${imgSrc}" alt="${fileObj.name}" loading="lazy">
+                <button class="download-btn" onclick="downloadSingle(${fileObj.id})" title="Download">⬇️</button>
+                ${imageHTML}
                 <div class="image-card-info">
                     <div class="image-card-name" title="${fileObj.name}">${fileObj.name}</div>
                     <div>${formatFileSize(fileObj.size)}</div>
@@ -1050,6 +1239,24 @@
             const card = document.getElementById(`card-${fileObj.id}`);
             if (!card) return;
 
+            // Update image comparison if in converter mode
+            if (state.mode === 'converter' && fileObj.convertedPreview) {
+                const comparison = card.querySelector('.image-comparison');
+                if (comparison && comparison.classList.contains('single')) {
+                    comparison.classList.remove('single');
+                    comparison.innerHTML = `
+                        <div>
+                            <img src="${fileObj.preview}" alt="Original" loading="lazy">
+                            <div class="image-label">Original (${formatFileSize(fileObj.size)})</div>
+                        </div>
+                        <div>
+                            <img src="${fileObj.convertedPreview}" alt="Converted" loading="lazy">
+                            <div class="image-label">Converted (${formatFileSize(fileObj.convertedSize)})</div>
+                        </div>
+                    `;
+                }
+            }
+
             const statusEl = card.querySelector('.image-card-status');
             const iconEl = statusEl.querySelector('.status-icon');
             
@@ -1060,11 +1267,16 @@
             if (fileObj.status === 'processing') {
                 statusText = `${fileObj.progress}%`;
             } else if (fileObj.status === 'completed') {
-                statusText = `✓ ${fileObj.confidence.toFixed(0)}%`;
+                if (state.mode === 'ocr') {
+                    statusText = `✓ ${fileObj.confidence.toFixed(0)}%`;
+                } else {
+                    const reduction = fileObj.size > 0 
+                        ? (((fileObj.size - fileObj.convertedSize) / fileObj.size) * 100).toFixed(0)
+                        : 0;
+                    statusText = `✓ ${reduction}% smaller`;
+                }
             } else if (fileObj.status === 'error') {
                 statusText = `✗ Failed`;
-            } else if (fileObj.status === 'retrying') {
-                statusText = `Retry ${fileObj.retries}`;
             }
             
             statusEl.innerHTML = `
@@ -1075,8 +1287,16 @@
 
         function removeImage(id) {
             if (state.processing) {
-                showNotification('Cannot remove images during processing', 'warning');
+                showNotification('Cannot remove during processing', 'warning');
                 return;
+            }
+
+            const fileObj = state.files.find(f => f.id === id);
+            if (fileObj) {
+                state.totalOriginalSize -= fileObj.size;
+                if (fileObj.convertedSize) {
+                    state.totalConvertedSize -= fileObj.convertedSize;
+                }
             }
 
             state.files = state.files.filter(f => f.id !== id);
@@ -1100,6 +1320,8 @@
             cleanupBlobUrls();
             state.files = [];
             state.results = [];
+            state.totalOriginalSize = 0;
+            state.totalConvertedSize = 0;
             document.getElementById('imagesGrid').innerHTML = '';
             updateUI();
             showNotification('Queue cleared');
@@ -1130,160 +1352,42 @@
             document.getElementById('queueFailed').textContent = failed;
         }
 
-        // Worker Management with Auto-Recovery
-        async function initializeWorker() {
-            if (state.worker) {
-                try {
-                    await state.worker.terminate();
-                } catch (e) {
-                    console.warn('Worker termination warning:', e);
-                }
-            }
-
-            const language = document.getElementById('languageSelect').value;
-            
-            try {
-                state.worker = await Tesseract.createWorker({
-                    logger: () => {},
-                    errorHandler: (err) => console.error('Worker error:', err)
-                });
-
-                await state.worker.loadLanguage(language);
-                await state.worker.initialize(language);
-                
-                return state.worker;
-            } catch (error) {
-                console.error('Worker initialization failed:', error);
-                throw new Error('Failed to initialize OCR engine');
-            }
-        }
-
-        // Image preprocessing with memory optimization
-        async function preprocessImage(file) {
-            const shouldResize = document.getElementById('autoResize').checked;
-            const shouldEnhance = document.getElementById('enhanceToggle').checked;
-
-            if (!shouldResize && !shouldEnhance) {
-                return file;
-            }
-
-            return new Promise((resolve, reject) => {
-                const img = new Image();
-                const maxDimension = 2000; // Max width/height
-
-                img.onload = () => {
-                    try {
-                        let canvas = document.createElement('canvas');
-                        let ctx = canvas.getContext('2d', { willReadFrequently: true });
-
-                        let width = img.width;
-                        let height = img.height;
-
-                        // Resize if needed
-                        if (shouldResize && (width > maxDimension || height > maxDimension)) {
-                            const ratio = Math.min(maxDimension / width, maxDimension / height);
-                            width = Math.floor(width * ratio);
-                            height = Math.floor(height * ratio);
-                        }
-
-                        canvas.width = width;
-                        canvas.height = height;
-                        ctx.drawImage(img, 0, 0, width, height);
-
-                        // Enhance if needed
-                        if (shouldEnhance) {
-                            const imageData = ctx.getImageData(0, 0, width, height);
-                            const data = imageData.data;
-
-                            // Grayscale + contrast enhancement
-                            for (let i = 0; i < data.length; i += 4) {
-                                const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
-                                const enhanced = Math.min(255, Math.max(0, (gray - 128) * 1.2 + 128));
-                                data[i] = data[i + 1] = data[i + 2] = enhanced;
-                            }
-
-                            ctx.putImageData(imageData, 0, 0);
-                        }
-
-                        canvas.toBlob((blob) => {
-                            // Clean up
-                            canvas = null;
-                            ctx = null;
-                            
-                            if (blob) {
-                                resolve(new File([blob], file.name, { type: 'image/png' }));
-                            } else {
-                                resolve(file);
-                            }
-                        }, 'image/png', 0.95);
-
-                    } catch (error) {
-                        console.error('Preprocessing error:', error);
-                        resolve(file); // Return original on error
-                    }
-                };
-
-                img.onerror = () => {
-                    console.error('Image load error');
-                    resolve(file);
-                };
-
-                // Use object URL for better memory management
-                const url = URL.createObjectURL(file);
-                state.blobUrls.add(url);
-                img.src = url;
-            });
-        }
-
-        // Main processing function with resilience
-        async function processAllImages() {
+        // Main Processing
+        async function processAll() {
             if (state.processing) return;
 
             state.processing = true;
-            state.paused = false;
             state.startTime = Date.now();
-            state.processedCount = 0;
-            state.failedCount = 0;
 
             document.getElementById('progressContainer').classList.add('active');
-            document.getElementById('processAllBtn').style.display = 'none';
-            document.getElementById('pauseBtn').style.display = 'inline-flex';
+            document.getElementById('processAllBtn').disabled = true;
 
             try {
-                showNotification('Initializing OCR engine...', 'warning');
-                await initializeWorker();
-                showNotification('Processing started...', 'success');
+                if (state.mode === 'ocr') {
+                    await processOCRBatch();
+                } else {
+                    await processConverterBatch();
+                }
 
-                const batchSize = parseInt(document.getElementById('batchSize').value) || 1;
-                queue.maxConcurrent = batchSize;
+                const processingTime = ((Date.now() - state.startTime) / 1000).toFixed(1);
+                
+                if (state.mode === 'ocr') {
+                    document.getElementById('processingTime').textContent = `${processingTime}s`;
+                } else {
+                    document.getElementById('convProcessingTime').textContent = `${processingTime}s`;
+                }
 
-                // Add pending/failed images to queue
-                const toProcess = state.files.filter(f => 
-                    f.status === 'pending' || f.status === 'error'
-                );
-
-                toProcess.forEach(f => {
-                    f.status = 'pending';
-                    f.retries = 0;
-                    queue.add(f);
-                });
-
-                // Process queue
-                await processQueue();
-
-                // Show results if any completed
                 const completed = state.files.filter(f => f.status === 'completed');
+                const failed = state.files.filter(f => f.status === 'error');
+
                 if (completed.length > 0) {
                     state.results = completed;
                     showResults();
                 }
 
-                const processingTime = ((Date.now() - state.startTime) / 1000).toFixed(1);
-                document.getElementById('processingTime').textContent = `${processingTime}s`;
-
                 showNotification(
-                    `Completed: ${state.processedCount} | Failed: ${state.failedCount}`,
-                    state.failedCount > 0 ? 'warning' : 'success'
+                    `Completed: ${completed.length} | Failed: ${failed.length}`,
+                    failed.length > 0 ? 'warning' : 'success'
                 );
 
             } catch (error) {
@@ -1292,33 +1396,40 @@
             } finally {
                 state.processing = false;
                 document.getElementById('progressContainer').classList.remove('active');
-                document.getElementById('processAllBtn').style.display = 'inline-flex';
-                document.getElementById('pauseBtn').style.display = 'none';
+                document.getElementById('processAllBtn').disabled = false;
                 
-                // Cleanup
-                if (state.worker) {
+                if (state.ocrWorker) {
                     try {
-                        await state.worker.terminate();
-                        state.worker = null;
+                        await state.ocrWorker.terminate();
+                        state.ocrWorker = null;
                     } catch (e) {
                         console.warn('Worker cleanup warning:', e);
                     }
                 }
 
-                cleanupBlobUrls();
                 updateUI();
             }
         }
 
-        async function processQueue() {
-            const maxRetries = parseInt(document.getElementById('maxRetries').value) || 0;
-            const total = queue.pending + queue.active;
+        // OCR Processing
+        async function processOCRBatch() {
+            showNotification('Initializing OCR...', 'warning');
+            
+            const language = document.getElementById('ocrLanguage').value;
+            state.ocrWorker = await Tesseract.createWorker({ logger: () => {} });
+            await state.ocrWorker.loadLanguage(language);
+            await state.ocrWorker.initialize(language);
+
+            const batchSize = parseInt(document.getElementById('ocrBatchSize').value) || 1;
+            const maxRetries = parseInt(document.getElementById('ocrRetries').value) || 0;
+            const toProcess = state.files.filter(f => f.status === 'pending' || f.status === 'error');
+            
             let processed = 0;
+            const total = toProcess.length;
 
-            while (queue.hasNext() && !state.paused) {
-                const fileObj = queue.getNext();
-                queue.processing++;
-
+            for (let i = 0; i < toProcess.length; i++) {
+                const fileObj = toProcess[i];
+                
                 try {
                     fileObj.status = 'processing';
                     fileObj.progress = 0;
@@ -1326,117 +1437,235 @@
                     updateQueueStats();
 
                     document.getElementById('overallProgressText').textContent = 
-                        `Processing: ${fileObj.name}`;
+                        `OCR: ${fileObj.name} (${processed + 1}/${total})`;
 
-                    // Preprocess with timeout
-                    const preprocessed = await Promise.race([
-                        preprocessImage(fileObj.file),
-                        timeoutPromise(30000, fileObj.file)
-                    ]);
-
-                    // OCR with timeout
-                    const result = await Promise.race([
-                        recognizeWithProgress(preprocessed, fileObj),
-                        timeoutPromise(60000)
-                    ]);
-
-                    if (result) {
-                        fileObj.status = 'completed';
-                        fileObj.confidence = result.confidence;
-                        fileObj.result = result.text;
-                        state.processedCount++;
-                    } else {
-                        throw new Error('Recognition timeout');
+                    // Preprocess if enhancement enabled
+                    let processedFile = fileObj.file;
+                    if (document.getElementById('ocrEnhance').checked) {
+                        processedFile = await preprocessImageForOCR(fileObj.file);
                     }
+
+                    // Perform OCR
+                    const result = await state.ocrWorker.recognize(processedFile, {
+                        logger: (m) => {
+                            if (m.status === 'recognizing text') {
+                                const progress = Math.round(m.progress * 100);
+                                fileObj.progress = progress;
+                                updateImageCardStatus(fileObj);
+                            }
+                        }
+                    });
+
+                    fileObj.status = 'completed';
+                    fileObj.confidence = result.data.confidence;
+                    fileObj.result = result.data.text;
 
                 } catch (error) {
-                    console.error(`Error processing ${fileObj.name}:`, error);
-                    fileObj.error = error.message;
-
-                    // Retry logic
+                    console.error(`OCR error for ${fileObj.name}:`, error);
+                    
                     if (fileObj.retries < maxRetries) {
                         fileObj.retries++;
-                        fileObj.status = 'retrying';
-                        state.retryCount++;
-                        
-                        // Re-queue for retry
-                        queue.add(fileObj);
-                        showNotification(`Retrying ${fileObj.name} (${fileObj.retries}/${maxRetries})`, 'warning');
-                    } else {
-                        fileObj.status = 'error';
-                        state.failedCount++;
+                        i--; // Retry
+                        showNotification(`Retrying ${fileObj.name}...`, 'warning');
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                        continue;
                     }
+                    
+                    fileObj.status = 'error';
                 } finally {
-                    queue.processing--;
                     processed++;
-
                     updateImageCardStatus(fileObj);
                     updateQueueStats();
 
-                    // Update progress
                     const progress = Math.round((processed / total) * 100);
                     document.getElementById('overallProgressFill').style.width = progress + '%';
                     document.getElementById('overallProgressFill').textContent = progress + '%';
 
-                    // Small delay to prevent overwhelming the system
-                    await new Promise(resolve => setTimeout(resolve, 100));
-
-                    // Recreate worker every 10 images to prevent memory leaks
-                    if (processed % 10 === 0 && queue.hasNext()) {
-                        try {
-                            await state.worker.terminate();
-                            await initializeWorker();
-                            await new Promise(resolve => setTimeout(resolve, 500));
-                        } catch (e) {
-                            console.warn('Worker recreation warning:', e);
-                        }
+                    // Recreate worker every 10 images
+                    if (processed % 10 === 0 && i < toProcess.length - 1) {
+                        await state.ocrWorker.terminate();
+                        state.ocrWorker = await Tesseract.createWorker({ logger: () => {} });
+                        await state.ocrWorker.loadLanguage(language);
+                        await state.ocrWorker.initialize(language);
                     }
                 }
             }
         }
 
-        async function recognizeWithProgress(file, fileObj) {
-            return new Promise((resolve, reject) => {
-                let progressTimeout;
-
-                state.worker.recognize(file, {
-                    logger: (m) => {
-                        if (m.status === 'recognizing text') {
-                            const progress = Math.round(m.progress * 100);
-                            fileObj.progress = progress;
-                            updateImageCardStatus(fileObj);
-
-                            // Reset timeout on progress
-                            clearTimeout(progressTimeout);
-                            progressTimeout = setTimeout(() => {
-                                reject(new Error('Recognition stalled'));
-                            }, 30000);
-                        }
-                    }
-                }).then(result => {
-                    clearTimeout(progressTimeout);
-                    resolve(result.data);
-                }).catch(error => {
-                    clearTimeout(progressTimeout);
-                    reject(error);
-                });
-            });
-        }
-
-        function timeoutPromise(ms, defaultValue = null) {
+        async function preprocessImageForOCR(file) {
             return new Promise((resolve) => {
-                setTimeout(() => resolve(defaultValue), ms);
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+                    let width = img.width;
+                    let height = img.height;
+                    const maxDim = 2000;
+
+                    if (width > maxDim || height > maxDim) {
+                        const ratio = Math.min(maxDim / width, maxDim / height);
+                        width = Math.floor(width * ratio);
+                        height = Math.floor(height * ratio);
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    const imageData = ctx.getImageData(0, 0, width, height);
+                    const data = imageData.data;
+
+                    for (let i = 0; i < data.length; i += 4) {
+                        const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+                        const enhanced = Math.min(255, Math.max(0, (gray - 128) * 1.2 + 128));
+                        data[i] = data[i + 1] = data[i + 2] = enhanced;
+                    }
+
+                    ctx.putImageData(imageData, 0, 0);
+
+                    canvas.toBlob((blob) => {
+                        resolve(new File([blob], file.name, { type: 'image/png' }));
+                    }, 'image/png', 0.95);
+                };
+                img.onerror = () => resolve(file);
+                img.src = URL.createObjectURL(file);
             });
         }
 
-        function pauseProcessing() {
-            state.paused = true;
-            showNotification('Processing paused. Finishing current batch...', 'warning');
+        // Image Converter Processing
+        async function processConverterBatch() {
+            const batchSize = parseInt(document.getElementById('convBatchSize').value) || 2;
+            const toProcess = state.files.filter(f => f.status === 'pending' || f.status === 'error');
+            
+            let processed = 0;
+            const total = toProcess.length;
+
+            for (let i = 0; i < toProcess.length; i += batchSize) {
+                const batch = toProcess.slice(i, Math.min(i + batchSize, toProcess.length));
+                
+                await Promise.all(batch.map(async (fileObj) => {
+                    try {
+                        fileObj.status = 'processing';
+                        fileObj.progress = 0;
+                        updateImageCardStatus(fileObj);
+                        updateQueueStats();
+
+                        document.getElementById('overallProgressText').textContent = 
+                            `Converting: ${fileObj.name} (${processed + 1}/${total})`;
+
+                        const converted = await convertImage(fileObj);
+                        
+                        fileObj.status = 'completed';
+                        fileObj.convertedBlob = converted.blob;
+                        fileObj.convertedSize = converted.size;
+                        fileObj.convertedPreview = converted.preview;
+                        state.totalConvertedSize += converted.size;
+
+                    } catch (error) {
+                        console.error(`Conversion error for ${fileObj.name}:`, error);
+                        fileObj.status = 'error';
+                    } finally {
+                        processed++;
+                        updateImageCardStatus(fileObj);
+                        updateQueueStats();
+
+                        const progress = Math.round((processed / total) * 100);
+                        document.getElementById('overallProgressFill').style.width = progress + '%';
+                        document.getElementById('overallProgressFill').textContent = progress + '%';
+                    }
+                }));
+
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+        }
+
+        async function convertImage(fileObj) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                
+                img.onload = () => {
+                    try {
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d', { willReadFrequently: false });
+
+                        let width = img.width;
+                        let height = img.height;
+                        
+                        const maxWidth = parseInt(document.getElementById('maxWidth').value) || 0;
+                        const maxHeight = parseInt(document.getElementById('maxHeight').value) || 0;
+                        const maintainRatio = document.getElementById('maintainRatio').checked;
+
+                        if (maxWidth > 0 || maxHeight > 0) {
+                            if (maintainRatio) {
+                                if (maxWidth > 0 && maxHeight > 0) {
+                                    const ratio = Math.min(maxWidth / width, maxHeight / height);
+                                    width = Math.floor(width * ratio);
+                                    height = Math.floor(height * ratio);
+                                } else if (maxWidth > 0) {
+                                    const ratio = maxWidth / width;
+                                    width = maxWidth;
+                                    height = Math.floor(height * ratio);
+                                } else {
+                                    const ratio = maxHeight / height;
+                                    height = maxHeight;
+                                    width = Math.floor(width * ratio);
+                                }
+                            } else {
+                                if (maxWidth > 0) width = maxWidth;
+                                if (maxHeight > 0) height = maxHeight;
+                            }
+                        }
+
+                        canvas.width = width;
+                        canvas.height = height;
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        const format = document.getElementById('outputFormat').value;
+                        const quality = parseInt(document.getElementById('imageQuality').value) / 100;
+                        
+                        const mimeType = format === 'jpeg' ? 'image/jpeg' :
+                                       format === 'png' ? 'image/png' :
+                                       format === 'webp' ? 'image/webp' :
+                                       format === 'bmp' ? 'image/bmp' :
+                                       'image/' + format;
+
+                        canvas.toBlob((blob) => {
+                            if (blob) {
+                                const preview = URL.createObjectURL(blob);
+                                state.blobUrls.add(preview);
+                                
+                                resolve({
+                                    blob: blob,
+                                    size: blob.size,
+                                    preview: preview
+                                });
+                            } else {
+                                reject(new Error('Conversion failed'));
+                            }
+                        }, mimeType, quality);
+
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
+
+                img.onerror = () => reject(new Error('Image load failed'));
+                img.src = URL.createObjectURL(fileObj.file);
+            });
         }
 
         // Results Display
         function showResults() {
-            const resultsSection = document.getElementById('resultsSection');
+            if (state.mode === 'ocr') {
+                showOCRResults();
+            } else {
+                showConverterResults();
+            }
+        }
+
+        function showOCRResults() {
+            const resultsSection = document.getElementById('ocrResultsSection');
             const tabsContainer = document.getElementById('resultsTabs');
             const contentContainer = document.getElementById('resultsContent');
 
@@ -1477,8 +1706,13 @@
                 contentContainer.appendChild(content);
             });
 
-            updateOverallStats();
+            updateOCRStats();
             resultsSection.classList.add('active');
+        }
+
+        function showConverterResults() {
+            updateConverterStats();
+            document.getElementById('converterResultsSection').classList.add('active');
         }
 
         function switchResultTab(index) {
@@ -1490,7 +1724,7 @@
             });
         }
 
-        function updateOverallStats() {
+        function updateOCRStats() {
             const completed = state.results.length;
             const total = state.files.length;
             const successRate = total > 0 ? ((completed / total) * 100).toFixed(1) : 0;
@@ -1501,14 +1735,46 @@
                 ? state.results.reduce((sum, r) => sum + r.confidence, 0) / completed 
                 : 0;
 
-            document.getElementById('totalImages').textContent = completed;
+            document.getElementById('totalProcessed').textContent = completed;
             document.getElementById('successRate').textContent = successRate + '%';
             document.getElementById('totalChars').textContent = totalChars.toLocaleString();
             document.getElementById('totalWords').textContent = totalWords.toLocaleString();
             document.getElementById('avgConfidence').textContent = avgConfidence.toFixed(1) + '%';
         }
 
-        // Export Functions
+        function updateConverterStats() {
+            const completed = state.results.length;
+            const total = state.files.length;
+            const successRate = total > 0 ? ((completed / total) * 100).toFixed(1) : 0;
+            
+            const compressionRatio = state.totalOriginalSize > 0
+                ? (((state.totalOriginalSize - state.totalConvertedSize) / state.totalOriginalSize) * 100).toFixed(1)
+                : 0;
+
+            document.getElementById('convTotalProcessed').textContent = completed;
+            document.getElementById('convSuccessRate').textContent = successRate + '%';
+            document.getElementById('originalSize').textContent = (state.totalOriginalSize / (1024 * 1024)).toFixed(2) + ' MB';
+            document.getElementById('convertedSize').textContent = (state.totalConvertedSize / (1024 * 1024)).toFixed(2) + ' MB';
+            document.getElementById('compressionRatio').textContent = compressionRatio + '%';
+        }
+
+        // Download Functions
+        function downloadSingle(id) {
+            const fileObj = state.files.find(f => f.id === id);
+            if (!fileObj || fileObj.status !== 'completed') return;
+
+            if (state.mode === 'ocr') {
+                const text = fileObj.result;
+                const filename = fileObj.name.replace(/\.[^/.]+$/, '') + '.txt';
+                downloadTextFile(text, filename);
+            } else {
+                const format = document.getElementById('outputFormat').value;
+                const ext = format === 'jpeg' ? 'jpg' : format;
+                const filename = fileObj.name.replace(/\.[^/.]+$/, '') + '.' + ext;
+                downloadBlob(fileObj.convertedBlob, filename);
+            }
+        }
+
         function copyAllResults() {
             const allText = state.results.map(r => 
                 `${'='.repeat(50)}\n${r.name}\n${'='.repeat(50)}\n${r.result}\n\n`
@@ -1527,18 +1793,25 @@
             });
         }
 
-        function downloadAllResults() {
+        function downloadAllOCR() {
             const allText = state.results.map(r => 
-                `${'='.repeat(70)}\nFile: ${r.name}\nConfidence: ${r.confidence.toFixed(2)}%\nWords: ${countWords(r.result)}\n${'='.repeat(70)}\n\n${r.result}\n\n\n`
+                `${'='.repeat(70)}\nFile: ${r.name}\nConfidence: ${r.confidence.toFixed(2)}%\n${'='.repeat(70)}\n\n${r.result}\n\n\n`
             ).join('');
 
             downloadTextFile(allText, 'ocr-results-all.txt');
-            showNotification('Results downloaded!');
+            showNotification('Text file downloaded!');
+        }
+
+        function downloadAllConverted() {
+            state.results.forEach(fileObj => {
+                downloadSingle(fileObj.id);
+            });
+            showNotification(`Downloading ${state.results.length} images...`);
         }
 
         async function downloadAsZip() {
-            if (typeof JSZip === 'undefined') {
-                downloadAllResults();
+            if (typeof JSZip === 'undefined' || state.results.length === 0) {
+                downloadAllOCR();
                 return;
             }
 
@@ -1552,9 +1825,7 @@
 
                 const summary = `OCR Processing Summary\n${'='.repeat(70)}\n\n` +
                     `Total Files: ${state.files.length}\n` +
-                    `Successful: ${state.results.length}\n` +
-                    `Failed: ${state.failedCount}\n` +
-                    `Success Rate: ${((state.results.length / state.files.length) * 100).toFixed(1)}%\n\n` +
+                    `Successful: ${state.results.length}\n\n` +
                     state.results.map(r => 
                         `${r.name}: ${countWords(r.result)} words, ${r.confidence.toFixed(1)}% confidence`
                     ).join('\n');
@@ -1567,25 +1838,50 @@
                     compressionOptions: { level: 6 }
                 });
                 
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `ocr-results-${Date.now()}.zip`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-
-                showNotification('ZIP downloaded successfully!');
+                downloadBlob(blob, `ocr-results-${Date.now()}.zip`);
+                showNotification('ZIP downloaded!');
             } catch (error) {
                 console.error('ZIP error:', error);
-                showNotification('ZIP creation failed, downloading as text', 'warning');
-                downloadAllResults();
+                showNotification('ZIP creation failed', 'error');
+            }
+        }
+
+        async function downloadConvertedZip() {
+            if (typeof JSZip === 'undefined' || state.results.length === 0) {
+                downloadAllConverted();
+                return;
+            }
+
+            try {
+                const zip = new JSZip();
+                const format = document.getElementById('outputFormat').value;
+                const ext = format === 'jpeg' ? 'jpg' : format;
+
+                state.results.forEach((fileObj) => {
+                    const filename = fileObj.name.replace(/\.[^/.]+$/, '') + '.' + ext;
+                    zip.file(filename, fileObj.convertedBlob);
+                });
+
+                const blob = await zip.generateAsync({ 
+                    type: 'blob',
+                    compression: 'DEFLATE',
+                    compressionOptions: { level: 6 }
+                });
+                
+                downloadBlob(blob, `converted-images-${Date.now()}.zip`);
+                showNotification('ZIP downloaded!');
+            } catch (error) {
+                console.error('ZIP error:', error);
+                showNotification('ZIP creation failed', 'error');
             }
         }
 
         function downloadTextFile(text, filename) {
             const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+            downloadBlob(blob, filename);
+        }
+
+        function downloadBlob(blob, filename) {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -1593,7 +1889,7 @@
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+            setTimeout(() => URL.revokeObjectURL(url), 100);
         }
 
         // Utility Functions
@@ -1612,31 +1908,47 @@
         function formatFileSize(bytes) {
             if (bytes < 1024) return bytes + ' B';
             if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+            return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
         }
 
         function cleanupBlobUrls() {
             state.blobUrls.forEach(url => {
                 try {
                     URL.revokeObjectURL(url);
-                } catch (e) {
-                    // Ignore cleanup errors
-                }
+                } catch (e) {}
             });
             state.blobUrls.clear();
         }
 
-        // Settings Management
+        // Settings
         function loadSettings() {
             try {
-                const saved = localStorage.getItem('ocrSettings');
+                const saved = localStorage.getItem('imageProcessorSettings');
                 if (saved) {
                     const settings = JSON.parse(saved);
-                    document.getElementById('languageSelect').value = settings.language || 'eng';
-                    document.getElementById('batchSize').value = settings.batchSize || 1;
-                    document.getElementById('maxRetries').value = settings.maxRetries || 2;
-                    document.getElementById('autoResize').checked = settings.autoResize !== false;
-                    document.getElementById('enhanceToggle').checked = settings.enhance !== false;
+                    
+                    // Mode
+                    if (settings.mode) {
+                        state.mode = settings.mode;
+                        switchMode(settings.mode);
+                    }
+                    
+                    // OCR settings
+                    if (settings.ocrLanguage) document.getElementById('ocrLanguage').value = settings.ocrLanguage;
+                    if (settings.ocrBatchSize) document.getElementById('ocrBatchSize').value = settings.ocrBatchSize;
+                    if (settings.ocrRetries) document.getElementById('ocrRetries').value = settings.ocrRetries;
+                    if (settings.ocrEnhance !== undefined) document.getElementById('ocrEnhance').checked = settings.ocrEnhance;
+                    
+                    // Converter settings
+                    if (settings.outputFormat) document.getElementById('outputFormat').value = settings.outputFormat;
+                    if (settings.imageQuality) {
+                        document.getElementById('imageQuality').value = settings.imageQuality;
+                        document.getElementById('qualityValue').textContent = settings.imageQuality + '%';
+                    }
+                    if (settings.maxWidth) document.getElementById('maxWidth').value = settings.maxWidth;
+                    if (settings.maxHeight) document.getElementById('maxHeight').value = settings.maxHeight;
+                    if (settings.maintainRatio !== undefined) document.getElementById('maintainRatio').checked = settings.maintainRatio;
+                    if (settings.convBatchSize) document.getElementById('convBatchSize').value = settings.convBatchSize;
                 }
             } catch (e) {
                 console.error('Settings load error:', e);
@@ -1646,51 +1958,54 @@
         function saveSettings() {
             try {
                 const settings = {
-                    language: document.getElementById('languageSelect').value,
-                    batchSize: document.getElementById('batchSize').value,
-                    maxRetries: document.getElementById('maxRetries').value,
-                    autoResize: document.getElementById('autoResize').checked,
-                    enhance: document.getElementById('enhanceToggle').checked
+                    mode: state.mode,
+                    ocrLanguage: document.getElementById('ocrLanguage').value,
+                    ocrBatchSize: document.getElementById('ocrBatchSize').value,
+                    ocrRetries: document.getElementById('ocrRetries').value,
+                    ocrEnhance: document.getElementById('ocrEnhance').checked,
+                    outputFormat: document.getElementById('outputFormat').value,
+                    imageQuality: document.getElementById('imageQuality').value,
+                    maxWidth: document.getElementById('maxWidth').value,
+                    maxHeight: document.getElementById('maxHeight').value,
+                    maintainRatio: document.getElementById('maintainRatio').checked,
+                    convBatchSize: document.getElementById('convBatchSize').value
                 };
-                localStorage.setItem('ocrSettings', JSON.stringify(settings));
+                localStorage.setItem('imageProcessorSettings', JSON.stringify(settings));
             } catch (e) {
                 console.error('Settings save error:', e);
             }
         }
 
-        // Reset Application
+        // Reset
         async function resetApp() {
             if (state.processing) {
                 if (!confirm('Processing in progress. Reset anyway?')) return;
-                state.paused = true;
             }
 
             try {
-                if (state.worker) {
-                    await state.worker.terminate();
+                if (state.ocrWorker) {
+                    await state.ocrWorker.terminate();
+                    state.ocrWorker = null;
                 }
             } catch (e) {
-                console.warn('Worker termination warning:', e);
+                console.warn('Worker cleanup warning:', e);
             }
 
             cleanupBlobUrls();
-            queue.clear();
             
             state.files = [];
             state.results = [];
-            state.worker = null;
             state.processing = false;
-            state.paused = false;
-            state.processedCount = 0;
-            state.failedCount = 0;
+            state.totalOriginalSize = 0;
+            state.totalConvertedSize = 0;
 
             document.getElementById('fileInput').value = '';
             document.getElementById('imagesGrid').innerHTML = '';
             document.getElementById('uploadSection').style.display = 'block';
             document.getElementById('batchPreviewSection').classList.remove('active');
             document.getElementById('progressContainer').classList.remove('active');
-            document.getElementById('resultsSection').classList.remove('active');
-            document.getElementById('memoryWarning').classList.remove('active');
+            document.getElementById('ocrResultsSection').classList.remove('active');
+            document.getElementById('converterResultsSection').classList.remove('active');
 
             updateUI();
             showNotification('Session reset');
@@ -1707,32 +2022,21 @@
             }, 3000);
         }
 
-        // Cleanup on page unload
+        // Cleanup on unload
         window.addEventListener('beforeunload', async (e) => {
             if (state.processing) {
                 e.preventDefault();
-                e.returnValue = 'Processing in progress. Are you sure?';
+                e.returnValue = 'Processing in progress';
             }
             
             cleanupBlobUrls();
             
-            if (state.worker) {
+            if (state.ocrWorker) {
                 try {
-                    await state.worker.terminate();
-                } catch (e) {
-                    // Ignore
-                }
+                    await state.ocrWorker.terminate();
+                } catch (e) {}
             }
         });
-
-        // Monitor memory (optional - for debugging)
-        if (performance && performance.memory) {
-            setInterval(() => {
-                const used = (performance.memory.usedJSHeapSize / 1048576).toFixed(0);
-                const total = (performance.memory.totalJSHeapSize / 1048576).toFixed(0);
-                console.log(`Memory: ${used}MB / ${total}MB`);
-            }, 10000);
-        }
     </script>
 </body>
 </html>
